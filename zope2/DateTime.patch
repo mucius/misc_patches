@@ -1,0 +1,21 @@
+*** DateTime.py.org	2006-01-06 15:44:40.000000000 +0900
+--- DateTime.py	2006-02-09 11:29:39.017625000 +0900
+***************
+*** 1503,1508 ****
+--- 1503,1518 ----
+                 microseconds).strftime(format) 
+          return format_is_unicode and unicode(ds, 'utf-8') or ds
+  
++     def xstrftime(self, format):
++         microseconds = int((self._second - self._nearsec) * 1000000)
++         format_is_unicode = False
++         if isinstance(format, unicode):
++             format = format.encode('utf-8')
++             format_is_unicode = True
++         ds = datetime(self._year, self._month, self._day, self._hour,  
++                self._minute, int(self._nearsec),
++                microseconds).strftime(format) 
++         return format_is_unicode and unicode(ds, 'utf-8') or ds
+      # General formats from previous DateTime
+      def Date(self):
+          """Return the date string for the object."""

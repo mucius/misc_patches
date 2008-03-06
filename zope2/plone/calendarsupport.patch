@@ -1,0 +1,67 @@
+*** calendarsupport.py.ORGINAL	2006-06-04 01:49:49.000000000 +0900
+--- calendarsupport.py	2006-06-10 14:00:30.828125000 +0900
+***************
+*** 93,99 ****
+  UID:ATEvent-%(uid)s
+  SEQUENCE:0
+  LAST-MODIFIED:%(modified)s
+! SUMMARY:%(summary)s
+  """
+  
+  VCS_EVENT_END = """\
+--- 93,99 ----
+  UID:ATEvent-%(uid)s
+  SEQUENCE:0
+  LAST-MODIFIED:%(modified)s
+! SUMMARY;LANGUAGE=ja;ENCODING=8-bit;CHARSET=shift_jis:%(summary)s
+  """
+  
+  VCS_EVENT_END = """\
+***************
+*** 217,233 ****
+              'created'   : rfc2445dt(DateTime(self.CreationDate())),
+              'uid'       : self.UID(),
+              'modified'  : rfc2445dt(DateTime(self.ModificationDate())),
+!             'summary'   : vformat(self.Title()),
+              'startdate' : rfc2445dt(self.start()),
+              'enddate'   : rfc2445dt(self.end()),
+              }
+          out.write(VCS_EVENT_START % map)
+          description = self.Description()
+          if description:
+!             out.write(foldLine('DESCRIPTION:%s\n' % vformat(description)))
+          location = self.getLocation()
+          if location:
+!             out.write('LOCATION:%s\n' % vformat(location))
+          out.write(VCS_EVENT_END)
+          # TODO
+          # Insert missing code here :]
+--- 217,233 ----
+              'created'   : rfc2445dt(DateTime(self.CreationDate())),
+              'uid'       : self.UID(),
+              'modified'  : rfc2445dt(DateTime(self.ModificationDate())),
+!             'summary'   : vsformat(self.Title()),
+              'startdate' : rfc2445dt(self.start()),
+              'enddate'   : rfc2445dt(self.end()),
+              }
+          out.write(VCS_EVENT_START % map)
+          description = self.Description()
+          if description:
+!             out.write(foldLine('DESCRIPTION;LANGUAGE=ja;ENCODING=8-bit;CHARSET=shift_jis:%s\n' % vsformat(description)))
+          location = self.getLocation()
+          if location:
+!             out.write('LOCATION;LANGUAGE=ja;ENCODING=8-bit;CHARSET=shift_jis:%s\n' % vsformat(location))
+          out.write(VCS_EVENT_END)
+          # TODO
+          # Insert missing code here :]
+***************
+*** 250,255 ****
+--- 250,257 ----
+  def vformat(s):
+      # return string with escaped commas, colons and semicolons
+      return s.strip().replace(',','\,').replace(':','\:').replace(';','\;')
++ def vsformat(s):
++     return unicode( vformat(s), 'utf8').encode('sjis')
+  
+  def n2rn(s):
+      return s.replace('\n', '\r\n')

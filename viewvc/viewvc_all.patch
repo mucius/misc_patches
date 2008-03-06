@@ -1,0 +1,108 @@
+diff -cr viewvc/lib/blame.py viewvcmod/lib/blame.py
+*** viewvc/lib/blame.py	2006-08-02 01:48:48.151081000 +0900
+--- viewvcmod/lib/blame.py	2008-03-03 18:29:30.164600000 +0900
+***************
+*** 34,39 ****
+--- 34,40 ----
+  import cgi
+  import vclib
+  import vclib.ccvs.blame
++ import viewvc
+  
+  
+  re_includes = re.compile('\\#(\\s*)include(\\s*)"(.*?)"')
+***************
+*** 82,88 ****
+      diff_url = None
+      if item.prev_rev:
+        diff_url = '%sr1=%s&amp;r2=%s' % (self.diff_url, item.prev_rev, item.rev)
+!     thisline = link_includes(cgi.escape(item.text), self.repos,
+                               self.path_parts, self.include_url)
+      return _item(text=thisline, line_number=item.line_number,
+                   rev=item.rev, prev_rev=item.prev_rev,
+--- 83,89 ----
+      diff_url = None
+      if item.prev_rev:
+        diff_url = '%sr1=%s&amp;r2=%s' % (self.diff_url, item.prev_rev, item.rev)
+!     thisline = link_includes(cgi.escape( viewvc.toutf8(item.text)), self.repos,
+                               self.path_parts, self.include_url)
+      return _item(text=thisline, line_number=item.line_number,
+                   rev=item.rev, prev_rev=item.prev_rev,
+diff -cr viewvc/lib/viewvc.py viewvcmod/lib/viewvc.py
+*** viewvc/lib/viewvc.py	2008-02-29 00:22:14.323801000 +0900
+--- viewvcmod/lib/viewvc.py	2008-03-03 18:35:30.768600000 +0900
+***************
+*** 44,49 ****
+--- 44,50 ----
+  import ezt
+  import accept
+  import vclib
++ import pykf
+  
+  try:
+    import idiff
+***************
+*** 982,988 ****
+--- 983,1004 ----
+  # addresses.  Note that the regexps assume the text is already HTML-encoded.
+  _re_rewrite_url = re.compile('((http|https|ftp|file|svn|svn\+ssh)(://[-a-zA-Z0-9%.~:_/]+)((\?|\&amp;)([-a-zA-Z0-9%.~:_]+)=([-a-zA-Z0-9%.~:_])+)*(#([-a-zA-Z0-9%.~:_]+)?)?)')
+  _re_rewrite_email = re.compile('([-a-zA-Z0-9_.\+]+)@(([-a-zA-Z0-9]+\.)+[A-Za-z]{2,4})')
++ def toutf8(txt):
++   """pykf.guess cannot guess utf-8 string (wrong to sjis)"""
++   c = pykf.guess(txt)
++   if c is pykf.JIS:
++     u = unicode(txt, 'japanese.iso-2022-jp')
++     return u.encode('utf-8')
++   for enc in ['utf-8', 'japanese.euc-jp', 'japanese.shift_jis']:
++     try:
++       u = unicode(txt, enc)
++       return u.encode('utf-8')
++     except UnicodeError:
++       pass
++   return txt
++ 
+  def htmlify(html):
++   html = toutf8(html)
+    html = cgi.escape(html)
+    html = re.sub(_re_rewrite_url, r'<a href="\1">\1</a>', html)
+    html = re.sub(_re_rewrite_email, r'<a href="mailto:\1&#64;\2">\1&#64;\2</a>', html)
+***************
+*** 991,1003 ****
+  def format_log(log, cfg, htmlize=1):
+    if not log:
+      return log
+!   if htmlize:
+!     s = htmlify(log[:cfg.options.short_log_len])
+!   else:
+!     s = cgi.escape(log[:cfg.options.short_log_len])
+!   if len(log) > cfg.options.short_log_len:
+!     s = s + '...'
+!   return s
+  
+  _time_desc = {
+           1 : 'second',
+--- 1007,1013 ----
+  def format_log(log, cfg, htmlize=1):
+    if not log:
+      return log
+!   return htmlify(log)
+  
+  _time_desc = {
+           1 : 'second',
+***************
+*** 1358,1364 ****
+      return 'Unknown date'
+    if cfg.options.use_localtime:
+      localtime = time.localtime(date)
+!     return time.asctime(localtime) + ' ' + time.tzname[localtime[8]]
+    else:
+      return time.asctime(time.gmtime(date)) + ' UTC'
+  
+--- 1368,1374 ----
+      return 'Unknown date'
+    if cfg.options.use_localtime:
+      localtime = time.localtime(date)
+!     return time.asctime(localtime) + ' ' + toutf8( time.tzname[localtime[8]])
+    else:
+      return time.asctime(time.gmtime(date)) + ' UTC'
+  

@@ -1,0 +1,47 @@
+*** text.py.org	2008-01-30 10:39:57.000000000 +0900
+--- text.py	2008-01-30 14:44:54.000000000 +0900
+***************
+*** 83,106 ****
+                        for k, v in params])
+  
+  def to_utf8(text, charset='iso-8859-15'):
+!     """Convert a string to UTF-8, assuming the encoding is either UTF-8, ISO
+!     Latin-1, or as specified by the optional `charset` parameter.
+! 
+!     ''Deprecated in 0.10. You should use `unicode` strings only.''
+!     """
+      try:
+!         # Do nothing if it's already utf-8
+!         u = unicode(text, 'utf-8')
+!         return text
+      except UnicodeError:
+!         try:
+!             # Use the user supplied charset if possible
+!             u = unicode(text, charset)
+!         except UnicodeError:
+!             # This should always work
+!             u = unicode(text, 'iso-8859-15')
+!         return u.encode('utf-8')
+! 
+  
+  class unicode_passwd(unicode):
+      """Conceal the actual content of the string when `repr` is called."""
+--- 83,100 ----
+                        for k, v in params])
+  
+  def to_utf8(text, charset='iso-8859-15'):
+!   """pykf.guess cannot guess utf-8 string (wrong to sjis)"""
+!   c = pykf.guess(text)
+!   if c is pykf.JIS:
+!     u = unicode(text, 'japanese.iso-2022-jp')
+!     return u.encode('utf-8')
+!   for enc in ['utf-8', 'japanese.euc-jp', 'japanese.shift_jis', charset]:
+      try:
+!       u = unicode(text, enc)
+!       return u.encode('utf-8')
+      except UnicodeError:
+!       pass
+!   return text
+  
+  class unicode_passwd(unicode):
+      """Conceal the actual content of the string when `repr` is called."""

@@ -1,0 +1,31 @@
+*** api.py.orig	2007-04-20 22:41:45.000000000 +0900
+--- api.py	2008-01-30 14:49:23.000000000 +0900
+***************
+*** 64,69 ****
+--- 64,70 ----
+  from trac.util import sorted
+  from trac.util.text import to_utf8, to_unicode
+  from trac.util.html import escape, Markup, Fragment, html
++ import pykf
+  
+  
+  __all__ = ['get_mimetype', 'is_binary', 'detect_unicode', 'Mimeview',
+***************
+*** 522,527 ****
+--- 523,538 ----
+              utf = detect_unicode(content)
+              if utf is not None:
+                  return utf
++         if not isinstance( content, str):
++           return self.default_charset
++         if pykf.guess( content) is pykf.JIS:
++           return 'iso-2022-jp';
++         for enc in [ 'utf-8', 'japanese.euc-jp', 'japanese.shift_jis']:
++           try:
++             unicode( content, enc)
++             return enc
++           except:
++             pass
+          return self.default_charset
+  
+      def get_mimetype(self, filename, content=None):
