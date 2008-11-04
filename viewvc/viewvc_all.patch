@@ -1,85 +1,58 @@
-diff -urx .svn viewvc/lib/blame.py viewvc_n/lib/blame.py
---- viewvc/lib/blame.py	2008-02-29 01:11:24.679499000 +0900
-+++ viewvc_n/lib/blame.py	2008-03-07 11:04:27.773381700 +0900
-@@ -35,6 +35,7 @@
- import cgi
- import vclib
- import vclib.ccvs.blame
-+import viewvc
- 
- 
- re_includes = re.compile('\\#(\\s*)include(\\s*)"(.*?)"')
-@@ -83,7 +84,7 @@
-     diff_url = None
-     if item.prev_rev:
-       diff_url = '%sr1=%s&amp;r2=%s' % (self.diff_url, item.prev_rev, item.rev)
--    thisline = link_includes(cgi.escape(item.text), self.repos,
-+    thisline = link_includes(cgi.escape( viewvc.toutf8(item.text)), self.repos,
-                              self.path_parts, self.include_url)
-     return _item(text=thisline, line_number=item.line_number,
-                  rev=item.rev, prev_rev=item.prev_rev,
-diff -urx .svn viewvc/lib/viewvc.py viewvc_n/lib/viewvc.py
---- viewvc/lib/viewvc.py	2008-03-04 23:25:14.669753000 +0900
-+++ viewvc_n/lib/viewvc.py	2008-03-07 11:04:27.790381700 +0900
-@@ -47,6 +47,7 @@
- import vclib
- import vclib.ccvs
- import vclib.svn
+diff -urN viewvc2034org/lib/toutf8.py viewvc2034/lib/toutf8.py
+--- viewvc2034org/lib/toutf8.py	1970-01-01 09:00:00.000000000 +0900
++++ viewvc2034/lib/toutf8.py	2008-11-04 13:52:00.362454100 +0900
+@@ -0,0 +1,16 @@
 +import pykf
- 
- try:
-   import idiff
-@@ -1003,9 +1004,24 @@
-                              '(#([-a-zA-Z0-9%.~:_]+)?)?)')
- _re_rewrite_email = re.compile('([-a-zA-Z0-9_.\+]+)@'
-                                '(([-a-zA-Z0-9]+\.)+[A-Za-z]{2,4})')
++import sys
 +def toutf8(txt):
 +  """pykf.guess cannot guess utf-8 string (wrong to sjis)"""
++  sys.stderr.write( 'enter toutf8()!!!\r\n')
 +  c = pykf.guess(txt)
 +  if c is pykf.JIS:
-+    u = unicode(txt, 'japanese.iso-2022-jp')
++    u = unicode(txt, 'iso2022_jp')
 +    return u.encode('utf-8')
-+  for enc in ['utf-8', 'japanese.euc-jp', 'japanese.shift_jis']:
++  for enc in ['utf-8', 'euc_jp', 'shift_jis']:
 +    try:
 +      u = unicode(txt, enc)
 +      return u.encode('utf-8')
 +    except UnicodeError:
 +      pass
 +  return txt
-+
- def htmlify(html, mangle_email_addrs=0):
-   if not html:
-     return html
-+  html = toutf8(html)
-   html = cgi.escape(html)
-   html = re.sub(_re_rewrite_url, r'<a href="\1">\1</a>', html)
-   if mangle_email_addrs:
-@@ -1022,18 +1038,7 @@
-   return html
+diff -urN viewvc2034org/lib/viewvc.py viewvc2034/lib/viewvc.py
+--- viewvc2034org/lib/viewvc.py	2008-10-31 02:37:04.023491000 +0900
++++ viewvc2034/lib/viewvc.py	2008-11-04 21:02:37.302000000 +0900
+@@ -37,6 +37,7 @@
+ import types
+ import urllib
  
- def format_log(log, cfg, htmlize=1):
--  if not log:
--    return log
--  if htmlize:
--    s = htmlify(log[:cfg.options.short_log_len],
--                cfg.options.mangle_email_addresses)
--  else:
--    s = cgi.escape(log[:cfg.options.short_log_len])
--    if cfg.options.mangle_email_addresses:
--      s = re.sub(_re_rewrite_email, r'\1@...', s)
--  if len(log) > cfg.options.short_log_len:
--    s = s + '...'
--  return s
-+  return htmlify(log)
- 
- _time_desc = {
-          1 : 'second',
-@@ -1447,7 +1452,7 @@
++import toutf8
+ # These modules come from our library (the stub has set up the path)
+ import accept
+ import compat
+@@ -1318,7 +1319,7 @@
+   blame_source = []
+   if blame_data:
+     for i in blame_data:
+-      i.text = cgi.escape(i.text)
++      i.text = cgi.escape(toutf8.toutf8(i.text))
+       i.diff_href = None
+       if i.prev_rev:
+         i.diff_href = request.get_url(view_func=view_diff,
+@@ -1360,7 +1361,7 @@
+         if not line:
+           break
+         line_no = line_no + 1
+-        item = vclib.Annotation(cgi.escape(line), line_no,
++        item = vclib.Annotation(cgi.escape(toutf8.toutf8(line)), line_no,
+                                 None, None, None, None)
+         item.diff_href = None
+         lines.append(item)
+@@ -1403,7 +1404,7 @@
      return None
    if cfg.options.use_localtime:
      localtime = time.localtime(date)
 -    return time.asctime(localtime) + ' ' + time.tzname[localtime[8]]
-+    return time.asctime(localtime) + ' ' + toutf8( time.tzname[localtime[8]])
++    return time.asctime(localtime) + ' ' + toutf8.toutf8(time.tzname[localtime[8]])
    else:
      return time.asctime(time.gmtime(date)) + ' UTC'
  
