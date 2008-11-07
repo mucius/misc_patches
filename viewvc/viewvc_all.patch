@@ -1,62 +1,68 @@
-diff -urN viewvc2034org/lib/toutf8.py viewvc2034/lib/toutf8.py
---- viewvc2034org/lib/toutf8.py	1970-01-01 09:00:00.000000000 +0900
-+++ viewvc2034/lib/toutf8.py	2008-11-05 18:07:22.240000000 +0900
-@@ -0,0 +1,37 @@
-+import pykf
-+import sys
-+import cgi
-+
-+def trim(x, strlen):
-+  length = len(x)
-+  sys.stderr.write('pas00\n')
-+  if ( strlen > 0) and ( length > strlen):
-+    sys.stderr.write('pas01\n')
-+    x = x[:strlen]
-+    if not ( ord( x[ -1]) & 0x80):
-+      return x
-+    elif ( ord( x[ -1]) & 0x40):
-+      return x[ :-1]
-+    elif ( ord( x[ -2]) & 0x40):
-+      return x[ :-2]
-+    elif ( ord( x[ -3]) & 0x40):
-+      return x[ :-3]
-+  return x
+diff -urN viewvc-1.2.0-dev/lib/ezt.py viewvc-1.2.0-devm/lib/ezt.py
+--- viewvc-1.2.0-dev/lib/ezt.py	2007-04-11 00:26:36.611604000 +0900
++++ viewvc-1.2.0-devm/lib/ezt.py	2008-11-07 21:03:51.316000000 +0900
+@@ -231,6 +231,7 @@
+ #    http://svn.webdav.org/repos/projects/ezt/trunk/
+ #
+ 
++import toutf8
+ import string
+ import re
+ from types import StringType, IntType, FloatType, LongType, TupleType
+@@ -790,10 +791,10 @@
+   """The format specifier is an unknown value."""
+ 
+ def _raw_printer(ctx, s):
+-  ctx.fp.write(s)
++  ctx.fp.write( toutf8.toutf8(s))
+   
+ def _html_printer(ctx, s):
+-  ctx.fp.write(cgi.escape(s))
++  ctx.fp.write( cgi.escape( toutf8.toutf8(s)))
+ 
+ def _uri_printer(ctx, s):
+   ctx.fp.write(urllib.quote(s))
+diff -urN viewvc-1.2.0-dev/lib/toutf8.py viewvc-1.2.0-devm/lib/toutf8.py
+--- viewvc-1.2.0-dev/lib/toutf8.py	1970-01-01 09:00:00.000000000 +0900
++++ viewvc-1.2.0-devm/lib/toutf8.py	2008-11-07 22:16:37.369000000 +0900
+@@ -0,0 +1,14 @@
++import chardet
 +
 +def toutf8(txt, strlen = 0):
-+  """pykf.guess cannot guess utf-8 string (wrong to sjis)"""
-+  sys.stderr.write( 'enter toutf8()!!!\r\n')
-+  c = pykf.guess(txt)
-+  if c is pykf.JIS:
-+    u = unicode(txt, 'iso2022_jp')
-+    return trim( u.encode('utf-8'), strlen)
-+  for enc in ['utf-8', 'euc_jp', 'shift_jis']:
-+    try:
-+      u = unicode(txt, enc)
-+      return trim( u.encode('utf-8'), strlen)
-+    except UnicodeError:
-+      pass
-+  return txt
-+
-+def escape(txt):
-+  return cgi.escape( toutf8(txt))
-diff -urN viewvc2034org/lib/viewvc.py viewvc2034/lib/viewvc.py
---- viewvc2034org/lib/viewvc.py	2008-10-31 02:37:04.023491000 +0900
-+++ viewvc2034/lib/viewvc.py	2008-11-05 18:07:18.596000000 +0900
-@@ -24,7 +24,7 @@
++  if not txt:
++    return txt
++  c = chardet.detect( txt)
++  try:
++    u = unicode( txt, c['encoding'])
++    return u.encode('utf-8')
++  except UnicodeError:
++    pass
++  except TypeError:
++    pass
++  return text
+diff -urN viewvc-1.2.0-dev/lib/viewvc.py viewvc-1.2.0-devm/lib/viewvc.py
+--- viewvc-1.2.0-dev/lib/viewvc.py	2008-10-31 02:37:04.023491000 +0900
++++ viewvc-1.2.0-devm/lib/viewvc.py	2008-11-07 21:26:07.896000000 +0900
+@@ -21,6 +21,7 @@
+ debug.t_start('startup')
+ debug.t_start('imports')
+ 
++import toutf8
  # standard modules that we know are in the path or builtin
  import sys
  import os
--import cgi
-+import toutf8 as cgi
- import gzip
- import mimetypes
- import re
-@@ -1084,14 +1084,15 @@
+@@ -1084,14 +1085,21 @@
  def format_log(log, cfg, htmlize=1):
    if not log:
      return log
-+  length = len(log)
-+  log = cgi.toutf8(log, strlen=cfg.options.short_log_len)
++  log = toutf8.toutf8( log)
++  length = len( log)
++  i = cfg.options.short_log_len
++  if length > i:
++    if ( ord( log[ i -1]) & 0x80):
++      while (length > i) and (( ord( log[ i]) & 0xc0) == 0x80):
++        i += 1
++    log = log[:i]
    if htmlize:
 -    s = htmlify(log[:cfg.options.short_log_len],
 -                cfg.options.mangle_email_addresses)
@@ -67,40 +73,29 @@ diff -urN viewvc2034org/lib/viewvc.py viewvc2034/lib/viewvc.py
      if cfg.options.mangle_email_addresses == 2:
        s = re.sub(_re_rewrite_email, r'\1@...', s)
 -  if len(log) > cfg.options.short_log_len:
-+  if length > cfg.options.short_log_len:
++  if length > i:
      s = s + '...'
    return s
  
-@@ -1271,9 +1272,12 @@
-                                          escape=1)
-   return data
- 
--def retry_read(src, reqlen=CHUNK_SIZE):
-+def retry_read(src, reqlen=CHUNK_SIZE, htmlize=1):
-   while 1:
--    chunk = src.read(CHUNK_SIZE)
-+    if htmlize:
-+      chunk = src.readline()
-+    else:
-+      chunk = src.read(reqlen)
-     if not chunk:
-       # need to check for eof methods because the cStringIO file objects
-       # returned by ccvs don't provide them
-@@ -1284,7 +1288,7 @@
-   
- def copy_stream(src, dst, cfg, htmlize=0):
-   while 1:
--    chunk = retry_read(src)
-+    chunk = retry_read(src=src, htmlize=htmlize)
-     if not chunk:
-       break
-     if htmlize:
-@@ -1403,7 +1407,7 @@
+@@ -1337,10 +1345,10 @@
+                                 get_lexer_for_mimetype, \
+                                 get_lexer_for_filename
+     try:
+-      lexer = get_lexer_for_mimetype(mime_type)
++      lexer = get_lexer_for_mimetype(mime_type, encoding='chardet')
+     except ClassNotFound:
+       try:
+-        lexer = get_lexer_for_filename(filename)
++        lexer = get_lexer_for_filename(filename, encoding='chardet')
+       except ClassNotFound:
+         use_pygments = 0
+   except ImportError:
+@@ -1403,7 +1411,7 @@
      return None
    if cfg.options.use_localtime:
      localtime = time.localtime(date)
 -    return time.asctime(localtime) + ' ' + time.tzname[localtime[8]]
-+    return time.asctime(localtime) + ' ' + cgi.toutf8(time.tzname[localtime[8]])
++    return time.asctime(localtime) + ' ' + toutf8.toutf8(time.tzname[localtime[8]])
    else:
      return time.asctime(time.gmtime(date)) + ' UTC'
  
