@@ -39,7 +39,7 @@ diff -urN viewvc-1.2.0-dev/lib/toutf8.py viewvc-1.2.0-devm/lib/toutf8.py
 +    pass
 +  except TypeError:
 +    pass
-+  return text
++  return txt
 diff -urN viewvc-1.2.0-dev/lib/viewvc.py viewvc-1.2.0-devm/lib/viewvc.py
 --- viewvc-1.2.0-dev/lib/viewvc.py	2008-10-31 02:37:04.023491000 +0900
 +++ viewvc-1.2.0-devm/lib/viewvc.py	2008-11-07 21:26:07.896000000 +0900
