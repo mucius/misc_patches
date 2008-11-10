@@ -1,0 +1,20 @@
+--- lexer.py.org	2008-11-06 11:53:10.540000000 +0900
++++ lexer.py	2008-11-10 19:52:20.910432400 +0900
+@@ -147,6 +147,17 @@
+                                       'from http://chardet.feedparser.org/')
+                 enc = chardet.detect(text)
+                 text = text.decode(enc['encoding'])
++            elif self.encoding == 'pykf':
++                import pykf
++                c = pykf.guess( text)
++                if c is pykf.JIS:
++                  text = text.decode( 'iso2022_jp')
++                else:
++                    for enc in [ 'utf-8', 'euc_jp', 'shift_jis']:
++                        try:
++                           text = text.decode( enc)
++                        except UnicodeError:
++                          pass
+             else:
+                 text = text.decode(self.encoding)
+         if self.stripall:
