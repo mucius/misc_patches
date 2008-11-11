@@ -1,6 +1,6 @@
 diff -urN viewvc-1.2.0-dev/lib/ezt.py viewvc-1.2.0-devm/lib/ezt.py
 --- viewvc-1.2.0-dev/lib/ezt.py	2007-04-11 00:26:36.611604000 +0900
-+++ viewvc-1.2.0-devm/lib/ezt.py	2008-11-07 21:03:51.316000000 +0900
++++ viewvc-1.2.0-devm/lib/ezt.py	2008-11-11 16:02:20.509432400 +0900
 @@ -231,6 +231,7 @@
  #    http://svn.webdav.org/repos/projects/ezt/trunk/
  #
@@ -9,12 +9,8 @@ diff -urN viewvc-1.2.0-dev/lib/ezt.py viewvc-1.2.0-devm/lib/ezt.py
  import string
  import re
  from types import StringType, IntType, FloatType, LongType, TupleType
-@@ -790,10 +791,10 @@
-   """The format specifier is an unknown value."""
- 
- def _raw_printer(ctx, s):
--  ctx.fp.write(s)
-+  ctx.fp.write( toutf8.toutf8(s))
+@@ -793,7 +794,7 @@
+   ctx.fp.write(s)
    
  def _html_printer(ctx, s):
 -  ctx.fp.write(cgi.escape(s))
@@ -24,7 +20,7 @@ diff -urN viewvc-1.2.0-dev/lib/ezt.py viewvc-1.2.0-devm/lib/ezt.py
    ctx.fp.write(urllib.quote(s))
 diff -urN viewvc-1.2.0-dev/lib/toutf8.py viewvc-1.2.0-devm/lib/toutf8.py
 --- viewvc-1.2.0-dev/lib/toutf8.py	1970-01-01 09:00:00.000000000 +0900
-+++ viewvc-1.2.0-devm/lib/toutf8.py	2008-11-07 22:16:37.369000000 +0900
++++ viewvc-1.2.0-devm/lib/toutf8.py	2008-11-11 09:16:00.051432400 +0900
 @@ -0,0 +1,18 @@
 +import pykf
 +
@@ -46,7 +42,7 @@ diff -urN viewvc-1.2.0-dev/lib/toutf8.py viewvc-1.2.0-devm/lib/toutf8.py
 +
 diff -urN viewvc-1.2.0-dev/lib/viewvc.py viewvc-1.2.0-devm/lib/viewvc.py
 --- viewvc-1.2.0-dev/lib/viewvc.py	2008-10-31 02:37:04.023491000 +0900
-+++ viewvc-1.2.0-devm/lib/viewvc.py	2008-11-07 21:26:07.896000000 +0900
++++ viewvc-1.2.0-devm/lib/viewvc.py	2008-11-11 15:08:10.647432400 +0900
 @@ -21,6 +21,7 @@
  debug.t_start('startup')
  debug.t_start('imports')
