@@ -1,6 +1,6 @@
 diff -urN viewvc-1.2.0-dev/lib/ezt.py viewvc-1.2.0-devm/lib/ezt.py
 --- viewvc-1.2.0-dev/lib/ezt.py	2007-04-11 00:26:36.611604000 +0900
-+++ viewvc-1.2.0-devm/lib/ezt.py	2008-11-11 16:02:20.509432400 +0900
++++ viewvc-1.2.0-devm/lib/ezt.py	2008-11-13 18:49:28.720283800 +0900
 @@ -231,6 +231,7 @@
  #    http://svn.webdav.org/repos/projects/ezt/trunk/
  #
@@ -9,28 +9,33 @@ diff -urN viewvc-1.2.0-dev/lib/ezt.py viewvc-1.2.0-devm/lib/ezt.py
  import string
  import re
  from types import StringType, IntType, FloatType, LongType, TupleType
-@@ -793,7 +794,7 @@
-   ctx.fp.write(s)
+@@ -790,7 +791,7 @@
+   """The format specifier is an unknown value."""
+ 
+ def _raw_printer(ctx, s):
+-  ctx.fp.write(s)
++  ctx.fp.write( toutf8.toutf8(s))
    
  def _html_printer(ctx, s):
--  ctx.fp.write(cgi.escape(s))
-+  ctx.fp.write( cgi.escape( toutf8.toutf8(s)))
- 
- def _uri_printer(ctx, s):
-   ctx.fp.write(urllib.quote(s))
+   ctx.fp.write(cgi.escape(s))
 diff -urN viewvc-1.2.0-dev/lib/toutf8.py viewvc-1.2.0-devm/lib/toutf8.py
 --- viewvc-1.2.0-dev/lib/toutf8.py	1970-01-01 09:00:00.000000000 +0900
-+++ viewvc-1.2.0-devm/lib/toutf8.py	2008-11-11 09:16:00.051432400 +0900
-@@ -0,0 +1,18 @@
++++ viewvc-1.2.0-devm/lib/toutf8.py	2008-11-13 19:49:02.949283800 +0900
+@@ -0,0 +1,25 @@
 +import pykf
++import cgi
 +
 +def toutf8(txt):
 +  """pykf.guess cannot guess utf-8 string (wrong to sjis)"""
 +  if not txt:
 +    return txt
++  import sys
 +  c = pykf.guess(txt)
 +  if c is pykf.JIS:
-+    u = unicode(txt, 'iso2022_jp')
++    try:
++      u = unicode(txt, 'iso2022_jp')
++    except:
++      return txt
 +    return u.encode('utf-8')
 +  for enc in ['utf-8', 'euc_jp', 'shift_jis']:
 +    try:
@@ -40,9 +45,11 @@ diff -urN viewvc-1.2.0-dev/lib/toutf8.py viewvc-1.2.0-devm/lib/toutf8.py
 +      pass
 +  return txt
 +
++def escape(txt):
++  return cgi.escape( toutf8(txt))
 diff -urN viewvc-1.2.0-dev/lib/viewvc.py viewvc-1.2.0-devm/lib/viewvc.py
---- viewvc-1.2.0-dev/lib/viewvc.py	2008-10-31 02:37:04.023491000 +0900
-+++ viewvc-1.2.0-devm/lib/viewvc.py	2008-11-11 15:08:10.647432400 +0900
+--- viewvc-1.2.0-dev/lib/viewvc.py	2008-11-12 01:21:58.880173000 +0900
++++ viewvc-1.2.0-devm/lib/viewvc.py	2008-11-13 19:44:08.808283800 +0900
 @@ -21,6 +21,7 @@
  debug.t_start('startup')
  debug.t_start('imports')
@@ -51,7 +58,7 @@ diff -urN viewvc-1.2.0-dev/lib/viewvc.py viewvc-1.2.0-devm/lib/viewvc.py
  # standard modules that we know are in the path or builtin
  import sys
  import os
-@@ -1084,14 +1085,21 @@
+@@ -1100,14 +1101,21 @@
  def format_log(log, cfg, htmlize=1):
    if not log:
      return log
@@ -77,7 +84,43 @@ diff -urN viewvc-1.2.0-dev/lib/viewvc.py viewvc-1.2.0-devm/lib/viewvc.py
      s = s + '...'
    return s
  
-@@ -1337,10 +1345,10 @@
+@@ -1292,9 +1300,9 @@
+                                          escape=1)
+   return data
+ 
+-def retry_read(src, reqlen=CHUNK_SIZE):
++def retry_read(src):
+   while 1:
+-    chunk = src.read(CHUNK_SIZE)
++    chunk = src.readline()
+     if not chunk:
+       # need to check for eof methods because the cStringIO file objects
+       # returned by ccvs don't provide them
+@@ -1303,11 +1311,13 @@
+         continue
+     return chunk
+   
+-def copy_stream(src, dst, cfg, htmlize=0):
++def copy_stream(src, dst, cfg, htmlize=0, conv=False):
+   while 1:
+     chunk = retry_read(src)
+     if not chunk:
+       break
++    if conv:
++      chunk = toutf8.toutf8(chunk)
+     if htmlize:
+       chunk = htmlify(chunk, mangle_email_addrs=0)
+     dst.write(chunk)
+@@ -1326,7 +1336,7 @@
+   def __call__(self, ctx):
+     if self.pretext:
+       ctx.fp.write(self.pretext)
+-    copy_stream(self.fp, ctx.fp, self.cfg, self.htmlize)
++    copy_stream(self.fp, ctx.fp, self.cfg, self.htmlize,conv=True)
+     self.fp.close()
+     if self.posttext:
+       ctx.fp.write(self.posttext)
+@@ -1358,10 +1368,10 @@
                                  get_lexer_for_mimetype, \
                                  get_lexer_for_filename
      try:
@@ -90,12 +133,12 @@ diff -urN viewvc-1.2.0-dev/lib/viewvc.py viewvc-1.2.0-devm/lib/viewvc.py
        except ClassNotFound:
          use_pygments = 0
    except ImportError:
-@@ -1403,7 +1411,7 @@
-     return None
-   if cfg.options.use_localtime:
-     localtime = time.localtime(date)
--    return time.asctime(localtime) + ' ' + time.tzname[localtime[8]]
-+    return time.asctime(localtime) + ' ' + toutf8.toutf8(time.tzname[localtime[8]])
-   else:
-     return time.asctime(time.gmtime(date)) + ' UTC'
+@@ -2580,7 +2590,7 @@
+       line = self.save_line
+       self.save_line = None
+     else:
+-      line = self.fp.readline()
++      line = toutf8.toutf8(self.fp.readline())
  
+     if not line:
+       if self.state == 'no-changes':
