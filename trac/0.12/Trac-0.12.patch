@@ -1,0 +1,65 @@
+diff -urN Trac-0.12.ja1_org/trac/mimeview/api.py Trac-0.12.ja1/trac/mimeview/api.py
+--- Trac-0.12.ja1_org/trac/mimeview/api.py	2010-06-17 15:33:29.000000000 +0900
++++ Trac-0.12.ja1/trac/mimeview/api.py	2010-10-01 00:50:19.000000000 +0900
+@@ -69,6 +69,7 @@
+ from trac.util import Ranges
+ from trac.util.text import exception_to_unicode, to_utf8, to_unicode
+ from trac.util.translation import _, tag_
++import pykf
+ 
+ 
+ __all__ = ['get_mimetype', 'is_binary', 'detect_unicode', 'Mimeview',
+@@ -879,6 +880,16 @@
+             utf = detect_unicode(content)
+             if utf is not None:
+                 return utf
++        if not isinstance( content, str):
++              return self.default_charset
++        if pykf.guess( content) is pykf.JIS:
++              return 'iso-2022-jp';
++        for enc in [ 'utf-8', 'euc-jp', 'shift_jis']:
++            try:
++                unicode( content, enc)
++                return enc
++            except:
++                pass
+         return self.default_charset
+ 
+     @property
+diff -urN Trac-0.12.ja1_org/trac/util/text.py Trac-0.12.ja1/trac/util/text.py
+--- Trac-0.12.ja1_org/trac/util/text.py	2010-06-17 15:33:29.000000000 +0900
++++ Trac-0.12.ja1/trac/util/text.py	2010-10-01 00:53:24.000000000 +0900
+@@ -125,23 +125,18 @@
+     return '&'.join(l)
+ 
+ def to_utf8(text, charset='iso-8859-15'):
+-    """Convert a string to UTF-8, assuming the encoding is either UTF-8, ISO
+-    Latin-1, or as specified by the optional `charset` parameter.
+-
+-    ''Deprecated in 0.10. You should use `unicode` strings only.''
+-    """
+-    try:
+-        # Do nothing if it's already utf-8
+-        u = unicode(text, 'utf-8')
+-        return text
+-    except UnicodeError:
++    """pykf.guess cannot guess utf-8 string (wrong to sjis)"""
++    c = pykf.guess(text)
++    if c is pykf.JIS:
++        u = unicode(text, 'iso-2022-jp')
++        return u.encode('utf-8')
++    for enc in ['utf-8', 'euc-jp', 'shift_jis', charset]:
+         try:
+-            # Use the user supplied charset if possible
+-            u = unicode(text, charset)
++            u = unicode(text, enc)
++            return u.encode('utf-8')
+         except UnicodeError:
+-            # This should always work
+-            u = unicode(text, 'iso-8859-15')
+-        return u.encode('utf-8')
++            pass
++    return text	
+ 
+ 
+ class unicode_passwd(unicode):
