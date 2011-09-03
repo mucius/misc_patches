@@ -1,0 +1,20 @@
+Index: viewvc.py
+===================================================================
+--- viewvc.py	(リビジョン 2590)
++++ viewvc.py	(作業コピー)
+@@ -1307,6 +1307,15 @@
+     else:
+       lf.add_formatter(_re_rewrite_email, lf.format_email)
+     log, log_len, truncated = lf.get_result(log, maxlen)
++    while True:
++      try:
++        log.decode('utf-8')
++      except UnicodeDecodeError:
++        if not log:
++          break
++        log = log[:-1]
++        continue
++      break
+     return log + (truncated and '&hellip;' or '')
+   else:
+     if cfg.options.mangle_email_addresses == 2:
