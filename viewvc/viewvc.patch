@@ -2,7 +2,7 @@ Index: viewvc.py
 ===================================================================
 --- viewvc.py	(リビジョン 2590)
 +++ viewvc.py	(作業コピー)
-@@ -1307,6 +1307,15 @@
+@@ -1307,6 +1307,13 @@
      else:
        lf.add_formatter(_re_rewrite_email, lf.format_email)
      log, log_len, truncated = lf.get_result(log, maxlen)
@@ -10,8 +10,6 @@ Index: viewvc.py
 +      try:
 +        log.decode('utf-8')
 +      except UnicodeDecodeError:
-+        if not log:
-+          break
 +        log = log[:-1]
 +        continue
 +      break
