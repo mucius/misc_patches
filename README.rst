@@ -160,14 +160,14 @@ svn:mime-type をちゃんと設定してあげれば，このパッチは不要
   * patches/trunk/trac/api.patch は，trac/mimeview/api.py に対するパッチ，
   * patches/trunk/trac/text.patch は， trac/utils/text.py に対するパッチです．
 
-    pykf_ をインストールする必要があります．
+pykf_ をインストールする必要があります．
 
-2010/10/1 追記
---------------
+追記 (2010/10/1)
+================
 
 またまた久々に、0.11 用と、0.12用のパッチを作成しました。
 
-  * patches/trunk/trac/0.11/Trac-0.11.7.patch  が 0.11.7用、
+  * patches/trunk/trac/0.11/Trac-0.11.7.patch  が 0.11.7用
   * patches/trunk/trac/0.12/Trac-0.12.patch が 0.12用です。
 
 今回からパッチを一つにまとめました。以下のようにあててください。
@@ -176,6 +176,4 @@ svn:mime-type をちゃんと設定してあげれば，このパッチは不要
 
     % patch -p1 < Trac-0.12.patch
 
-
 .. _pykf: http://sourceforge.jp/projects/pykf/files/
-
