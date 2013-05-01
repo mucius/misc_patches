@@ -1,0 +1,103 @@
+diff -urx .svn viewvc1.0.4/lib/blame.py viewvc1.0.4mod/lib/blame.py
+--- viewvc1.0.4/lib/blame.py	2006-08-02 01:48:48.151081000 +0900
++++ viewvc1.0.4mod/lib/blame.py	2008-03-07 11:28:37.835381700 +0900
+@@ -34,6 +34,7 @@
+ import cgi
+ import vclib
+ import vclib.ccvs.blame
++import viewvc
+ 
+ 
+ re_includes = re.compile('\\#(\\s*)include(\\s*)"(.*?)"')
+@@ -82,7 +83,7 @@
+     diff_url = None
+     if item.prev_rev:
+       diff_url = '%sr1=%s&amp;r2=%s' % (self.diff_url, item.prev_rev, item.rev)
+-    thisline = link_includes(cgi.escape(item.text), self.repos,
++    thisline = link_includes(cgi.escape(viewvc.toutf8(item.text)), self.repos,
+                              self.path_parts, self.include_url)
+     return _item(text=thisline, line_number=item.line_number,
+                  rev=item.rev, prev_rev=item.prev_rev,
+diff -urx .svn viewvc1.0.4/lib/vclib/svn/__init__.py viewvc1.0.4mod/lib/vclib/svn/__init__.py
+--- viewvc1.0.4/lib/vclib/svn/__init__.py	2006-10-14 05:01:02.959395000 +0900
++++ viewvc1.0.4mod/lib/vclib/svn/__init__.py	2008-03-07 11:28:37.841381700 +0900
+@@ -23,6 +23,7 @@
+ import popen
+ import re
+ from svn import fs, repos, core, delta
++import urllib
+ 
+ 
+ ### Require Subversion 1.2.0 or better.
+@@ -499,7 +500,7 @@
+     if os.sep != '/':
+       rootpath = string.replace(rootpath, os.sep, '/')
+       
+-    url = 'file://' + string.join([rootpath, fs_path], "/")
++    url = 'file://' + urllib.quote( string.join([rootpath, fs_path], "/"))
+     fp = popen.popen(svn_client_path,
+                      ('blame', "-r%d" % int(rev), "--non-interactive",
+                       "%s@%d" % (url, int(rev))),
+diff -urx .svn viewvc1.0.4/lib/viewvc.py viewvc1.0.4mod/lib/viewvc.py
+--- viewvc1.0.4/lib/viewvc.py	2007-04-10 15:16:01.664993000 +0900
++++ viewvc1.0.4mod/lib/viewvc.py	2008-03-07 11:28:37.854381700 +0900
+@@ -44,6 +44,7 @@
+ import ezt
+ import accept
+ import vclib
++import pykf
+ 
+ try:
+   import idiff
+@@ -973,17 +974,29 @@
+ # addresses.  Note that the regexps assume the text is already HTML-encoded.
+ _re_rewrite_url = re.compile('((http|https|ftp|file|svn|svn\+ssh)(://[-a-zA-Z0-9%.~:_/]+)((\?|\&amp;)([-a-zA-Z0-9%.~:_]+)=([-a-zA-Z0-9%.~:_])+)*(#([-a-zA-Z0-9%.~:_]+)?)?)')
+ _re_rewrite_email = re.compile('([-a-zA-Z0-9_.\+]+)@(([-a-zA-Z0-9]+\.)+[A-Za-z]{2,4})')
++def toutf8(txt):
++  """pykf.guess cannot guess utf-8 string (wrong to sjis)"""
++  c = pykf.guess(txt)
++  if c is pykf.JIS:
++    u = unicode(txt, 'japanese.iso-2022-jp')
++    return u.encode('utf-8')
++  for enc in ['utf-8', 'japanese.euc-jp', 'japanese.shift_jis']:
++    try:
++      u = unicode(txt, enc)
++      return u.encode('utf-8')
++    except UnicodeError:
++      pass
++  return txt
+ def htmlify(html):
++  html = toutf8(html)
+   html = cgi.escape(html)
+   html = re.sub(_re_rewrite_url, r'<a href="\1">\1</a>', html)
+   html = re.sub(_re_rewrite_email, r'<a href="mailto:\1&#64;\2">\1&#64;\2</a>', html)
+   return html
+ 
+ def format_log(log, cfg):
+-  s = htmlify(log[:cfg.options.short_log_len])
+-  if len(log) > cfg.options.short_log_len:
+-    s = s + '...'
+-  return s
++  """do not splice middle of multibyte char"""
++  return htmlify(log)
+ 
+ _time_desc = {
+          1 : 'second',
+@@ -1172,6 +1185,8 @@
+       break
+     if htmlize:
+       chunk = htmlify(chunk)
++    else:
++      chunk = toutf8(chunk)
+     dst.write(chunk)
+ 
+ class MarkupPipeWrapper:
+@@ -1344,7 +1359,7 @@
+     return 'Unknown date'
+   if cfg.options.use_localtime:
+     localtime = time.localtime(date)
+-    return time.asctime(localtime) + ' ' + time.tzname[localtime[8]]
++    return time.asctime(localtime) + ' ' + toutf8( time.tzname[localtime[8]])
+   else:
+     return time.asctime(time.gmtime(date)) + ' UTC'
+ 

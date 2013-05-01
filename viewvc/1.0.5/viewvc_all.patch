@@ -1,0 +1,157 @@
+diff -urN viewvc-1.0.5/lib/ezt.py viewvc-1.0.5m/lib/ezt.py
+--- viewvc-1.0.5/lib/ezt.py	2007-04-11 00:38:34.903482000 +0900
++++ viewvc-1.0.5m/lib/ezt.py	2008-11-13 17:17:14.896283800 +0900
+@@ -230,6 +230,7 @@
+ #    http://svn.webdav.org/repos/projects/ezt/trunk/
+ #
+ 
++import toutf8
+ import string
+ import re
+ from types import StringType, IntType, FloatType, LongType, TupleType
+@@ -787,7 +788,7 @@
+   """The format specifier is an unknown value."""
+ 
+ def _raw_printer(ctx, s):
+-  ctx.fp.write(s)
++  ctx.fp.write(toutf8.toutf8(s))
+   
+ def _html_printer(ctx, s):
+   ctx.fp.write(cgi.escape(s))
+diff -urN viewvc-1.0.5/lib/toutf8.py viewvc-1.0.5m/lib/toutf8.py
+--- viewvc-1.0.5/lib/toutf8.py	1970-01-01 09:00:00.000000000 +0900
++++ viewvc-1.0.5m/lib/toutf8.py	2008-11-13 17:17:14.899283800 +0900
+@@ -0,0 +1,22 @@
++import pykf
++import cgi
++
++def toutf8(txt):
++  """pykf.guess cannot guess utf-8 string (wrong to sjis)"""
++  if not txt:
++    return txt
++  import sys
++  c = pykf.guess(txt)
++  if c is pykf.JIS:
++    u = unicode(txt, 'iso2022_jp')
++    return u.encode('utf-8')
++  for enc in ['utf-8', 'euc_jp', 'shift_jis']:
++    try:
++      u = unicode(txt, enc)
++      return u.encode('utf-8')
++    except UnicodeError:
++      pass
++  return txt
++
++def escape(txt):
++  return cgi.escape( toutf8(txt))
+diff -urN viewvc-1.0.5/lib/vclib/svn/__init__.py viewvc-1.0.5m/lib/vclib/svn/__init__.py
+--- viewvc-1.0.5/lib/vclib/svn/__init__.py	2008-02-29 00:18:12.587383000 +0900
++++ viewvc-1.0.5m/lib/vclib/svn/__init__.py	2008-11-13 17:17:14.902283800 +0900
+@@ -12,6 +12,7 @@
+ 
+ "Version Control lib driver for locally accessible Subversion repositories"
+ 
++import toutf8
+ import vclib
+ import os
+ import os.path
+@@ -513,6 +514,7 @@
+                      ("blame",
+                       "-r%d" % int(rev),
+                       "--non-interactive",
++                      "--force",
+                       "--config-dir", self.config_dir,
+                       "%s@%d" % (url, int(rev))),
+                      'rb', 1)
+@@ -536,7 +538,7 @@
+       return self.last
+     if idx != self.idx + 1:
+       raise BlameSequencingError()
+-    line = self.fp.readline()
++    line = toutf8.toutf8( self.fp.readline())
+     if not line:
+       raise IndexError("No more annotations")
+     m = _re_blameinfo.match(line[:17])
+diff -urN viewvc-1.0.5/lib/viewvc.py viewvc-1.0.5m/lib/viewvc.py
+--- viewvc-1.0.5/lib/viewvc.py	2008-02-29 00:22:14.323801000 +0900
++++ viewvc-1.0.5m/lib/viewvc.py	2008-11-13 17:17:14.909283800 +0900
+@@ -25,7 +25,7 @@
+ import sys
+ import os
+ import sapi
+-import cgi
++import toutf8 as cgi
+ import string
+ import urllib
+ import mimetypes
+@@ -991,11 +991,20 @@
+ def format_log(log, cfg, htmlize=1):
+   if not log:
+     return log
++  import sys
++  log = cgi.toutf8( log)
++  length = len( log)
++  i = cfg.options.short_log_len
++  if length > i:
++    if ( ord( log[ i -1]) & 0x80):
++      while ( length > i) and (( ord( log[ i]) & 0xc0) == 0x80):
++        i += 1
++    log = log[ :i]
+   if htmlize:
+-    s = htmlify(log[:cfg.options.short_log_len])
++    s = htmlify(log)
+   else:
+-    s = cgi.escape(log[:cfg.options.short_log_len])
+-  if len(log) > cfg.options.short_log_len:
++    s = cgi.escape(log)
++  if length > i:
+     s = s + '...'
+   return s
+ 
+@@ -1166,9 +1175,9 @@
+ 
+   return data
+ 
+-def retry_read(src, reqlen=CHUNK_SIZE):
++def retry_read(src):
+   while 1:
+-    chunk = src.read(CHUNK_SIZE)
++    chunk = src.readline()
+     if not chunk:
+       # need to check for eof methods because the cStringIO file objects
+       # returned by ccvs don't provide them
+@@ -1177,13 +1186,15 @@
+         continue
+     return chunk
+   
+-def copy_stream(src, dst=None, htmlize=0):
++def copy_stream(src, dst=None, htmlize=0, conv = False):
+   if dst is None:
+     dst = sys.stdout
+   while 1:
+     chunk = retry_read(src)
+     if not chunk:
+       break
++    if conv:
++      chunk = cgi.toutf8( chunk)
+     if htmlize:
+       chunk = htmlify(chunk)
+     dst.write(chunk)
+@@ -1219,7 +1230,7 @@
+       pipe = popen.pipe_cmds(self.cmds, ctx.fp)
+       try:
+         if self.fp:
+-          copy_stream(self.fp, pipe)
++          copy_stream(self.fp, pipe, conv = True)
+           self.fp.close()
+           self.fp = None
+       finally:
+@@ -1265,7 +1276,7 @@
+     try:
+       file = os.path.join(dir, self.filename)
+       try:
+-        copy_stream(self.fp, open(file, 'wb'))
++        copy_stream(self.fp, open(file, 'wb'), conv = True)
+         self.fp.close()
+         self.fp = None
+         self.cmds[0][-1] = file
