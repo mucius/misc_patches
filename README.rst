@@ -30,23 +30,23 @@ svn_diff_file_options_t をpythonから使うことができていない為、�
 どなたか詳しい方、ご教示を... (ver.1.0.?では、コマンドラインのsvnをpipeで
 使っているので、--forceを挿入済み)
 
- * patches/viewvc/1.1.0-beta/viewvc_all.patch は安定版用(ver.1.1.0-beta)('08/11/13追加 python2.5用)
+ * misc_patches/viewvc/1.1.0-beta/viewvc_all.patch は安定版用(ver.1.1.0-beta)('08/11/13追加 python2.5用)
 
- * patches/viewvc/1.0.7/viewvc_all.patch は安定版用(ver.1.0.7)('08/11/04追加 python2.5用)
+ * misc_patches/viewvc/1.0.7/viewvc_all.patch は安定版用(ver.1.0.7)('08/11/04追加 python2.5用)
 
- * patches/viewvc/1.0.5/viewvc_all.patch は安定版用(ver.1.0.5)('08/03/03追加,'08/11/13 python2.5用に修正)
+ * misc_patches/viewvc/1.0.5/viewvc_all.patch は安定版用(ver.1.0.5)('08/03/03追加,'08/11/13 python2.5用に修正)
 
- * patches/viewvc/viewvc_all.patch がchardetを使用した開発版 ( rev.2047に対するパッチ．ver1.2-dev)
+ * misc_patches/viewvc/viewvc_all.patch がchardetを使用した開発版 ( rev.2047に対するパッチ．ver1.2-dev)
 
- * patches/viewvc/viewvc_pykf_all.patch も開発版ですが、pykfを使用
+ * misc_patches/viewvc/viewvc_pykf_all.patch も開発版ですが、pykfを使用
 
 開発版で、pykf用のパッチを使う場合は、
-patches/pygments/lexer.patch (pygments用のパッチ)も必要です．
+misc_patches/pygments/lexer.patch (pygments用のパッチ)も必要です．
 
 chardetは、http://chardet.feedparser.org にあります.
 
 chardet用のパッチを当てた後で、やはり pykfにしたい場合は、
-patches/viewvc/forPykf/toutf8.py に置き換えて、 viewvc.py の "chardet" と書かれている
+misc_patches/viewvc/forPykf/toutf8.py に置き換えて、 viewvc.py の "chardet" と書かれている
 部分(2カ所あります)を全て"pykf"に書き換えることで、pykfが使えるようになります．
 
 chardetを使わない場合は、pykf_ をインストールする必要があります． windows用のバイナリがあるのが嬉しいですね．
@@ -104,7 +104,7 @@ ver.1.1.11でも可能となっています。
 などとしていると、ログに日本語を使っている場合、日本語の途中で切ってしまうために
 文字化けすることがあります。これに対策するためのパッチを作りました。
 
-    * patches/trunk/viewvc/viewvc.patch
+    * misc_patches/trunk/viewvc/viewvc.patch
 
 エラーが無くなるまで、文末から1バイトづつ減らしてはデコードしてみるという
 かなり強引な方法ですが...
@@ -157,8 +157,8 @@ svn:mime-type をちゃんと設定してあげれば，このパッチは不要
 もっとも，先にも書いたように，僕自身はWindowsでもLinuxでもutf-8でソースコードを
 書くようになったので，それほど必要性を感じなくなってきたんですが...
 
-  * patches/trunk/trac/api.patch は，trac/mimeview/api.py に対するパッチ，
-  * patches/trunk/trac/text.patch は， trac/utils/text.py に対するパッチです．
+  * misc_patches/trunk/trac/api.patch は，trac/mimeview/api.py に対するパッチ，
+  * misc_patches/trunk/trac/text.patch は， trac/utils/text.py に対するパッチです．
 
 pykf_ をインストールする必要があります．
 
@@ -167,8 +167,8 @@ pykf_ をインストールする必要があります．
 
 またまた久々に、0.11 用と、0.12用のパッチを作成しました。
 
-  * patches/trunk/trac/0.11/Trac-0.11.7.patch  が 0.11.7用
-  * patches/trunk/trac/0.12/Trac-0.12.patch が 0.12用です。
+  * misc_patches/trunk/trac/0.11/Trac-0.11.7.patch  が 0.11.7用
+  * misc_patches/trunk/trac/0.12/Trac-0.12.patch が 0.12用です。
 
 今回からパッチを一つにまとめました。以下のようにあててください。
 
